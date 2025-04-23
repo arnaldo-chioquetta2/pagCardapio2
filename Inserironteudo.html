@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardápioAI - Inserir Conteúdo v1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        header {
+            background: #35424a;
+            color: #ffffff;
+            padding-top: 30px;
+            min-height: 70px;
+            border-bottom: #e8491d 3px solid;
+        }
+        header a {
+            color: #ffffff;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 16px;
+        }
+        header ul {
+            padding: 0;
+            list-style: none;
+        }
+        header li {
+            display: inline;
+            padding: 0 20px 0 20px;
+        }
+        header #branding {
+            float: left;
+        }
+        header #branding h1 {
+            margin: 0;
+        }
+        header nav {
+            float: right;
+            margin-top: 10px;
+        }
+        .highlight, header .current a {
+            color: #e8491d;
+            font-weight: bold;
+        }
+        .form-container {
+            background: #ffffff;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input[type="file"],
+        .form-group input[type="text"],
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .button {
+            display: inline-block;
+            font-size: 18px;
+            color: #ffffff;
+            background: #e8491d;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div id="branding">
+                <h1><span class="highlight">Cardápio</span>AI</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Início</a></li>
+                    <li class="current"><a href="inserir-conteudo.html">Criar Cardápio</a></li>
+                    <li><a href="#">Sobre</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Inserir Conteúdo do Cardápio</h2>
+        <div class="form-container">
+            <form id="menu-form">
+                <div class="form-group">
+                    <label for="excel-upload">Upload da lista de preços (Excel):</label>
+                    <input type="file" id="excel-upload" accept=".xlsx, .xls">
+                </div>
+                <div class="form-group">
+                    <label for="images-upload">Upload de imagens de pratos e drinks:</label>
+                    <input type="file" id="images-upload" accept="image/*" multiple>
+                </div>
+                <div class="form-group">
+                    <label for="logo-upload">Upload do logo:</label>
+                    <input type="file" id="logo-upload" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label for="menu-size">Tamanho do cardápio:</label>
+                    <select id="menu-size">
+                        <option value="a4">A4</option>
+                        <option value="a5">A5</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+
+                <label><input type="checkbox" id="modo-fake"> Fake</label>
+                <label><input type="checkbox" id="modo-rapido"> Modo Rápido</label>                
+
+                <button type="submit" id="gerar-layouts" class="button">Gerar Layouts</button>
+            </form>
+        </div>
+    </div>
+
+<div id="loading" style="display:none; text-align: center; margin-top: 20px;">
+    <img src="tempo.gif" alt="Carregando..." width="40"><br>
+    <strong>Processando... Por favor, aguarde.</strong>
+</div>
+
+<script>
+
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('modo-fake').checked = getCookie('modo_fake') === 'true';
+    document.getElementById('modo-rapido').checked = getCookie('modo_rapido') === 'true';
+});
+
+function setCookie(name, value, days = 365) {
+    const expires = new Date(Date.now() + days*24*60*60*1000).toUTCString();
+    document.cookie = `${name}=${value}; expires=${expires}; path=/`;
+}
+
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? match[2] : null;
+}
+
+document.getElementById('menu-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    console.log("🟡 Formulário submetido");
+
+    const excelFile = document.getElementById('excel-upload').files[0];
+    const imagesFiles = document.getElementById('images-upload').files;
+    const logoFile = document.getElementById('logo-upload').files[0];
+    const menuSize = document.getElementById('menu-size').value;
+
+    if (!excelFile) {
+        alert("O arquivo Excel do cardápio é obrigatório.");
+        console.log("🔴 Nenhum arquivo Excel enviado");
+        return;
+    }
+	
+	document.getElementById("loading").style.display = "block";	
+
+    try {
+        // Envia o Excel
+        console.log("🟡 Enviando arquivo Excel...");
+        const formDataExcel = new FormData();
+        formDataExcel.append("file", excelFile);
+        const excelResp = await fetch("http://localhost:8001/upload-cardapio", { method: "POST", body: formDataExcel });
+        const excelData = await excelResp.json();
+        console.log("✅ Excel enviado:", excelData);
+
+        if (!excelData.filename) throw new Error("Erro ao enviar Excel");
+
+        // Envia imagens, se existirem
+        if (imagesFiles.length > 0) {
+            console.log("🟡 Enviando imagens...");
+            const formDataImages = new FormData();
+            for (let i = 0; i < imagesFiles.length; i++) {
+                console.log(`📸 Adicionando imagem: ${imagesFiles[i].name}`);
+                formDataImages.append("files", imagesFiles[i]);
+            }
+            const imagesResp = await fetch("http://localhost:8001/upload-images", { method: "POST", body: formDataImages });
+            const imagesData = await imagesResp.json();
+            console.log("✅ Imagens enviadas:", imagesData);
+        } else {
+            console.log("ℹ️ Nenhuma imagem enviada");
+        }
+
+        // Envia logo, se existir
+        if (logoFile) {
+            console.log("🟡 Enviando logo...");
+            const formDataLogo = new FormData();
+            formDataLogo.append("file", logoFile);
+            const logoResp = await fetch("http://localhost:8001/upload-logo", { method: "POST", body: formDataLogo });
+            const logoData = await logoResp.json();
+            console.log("✅ Logo enviado:", logoData);
+        } else {
+            console.log("ℹ️ Nenhum logo enviado");
+        }
+
+        const modoFake = document.getElementById('modo-fake').checked;
+        const modoRapido = document.getElementById('modo-rapido').checked;
+
+        setCookie('modo_fake', modoFake);
+        setCookie('modo_rapido', modoRapido);
+        const tamanho = document.getElementById('menu-size').value;
+
+        const layoutsResp = await fetch("http://localhost:8001/generate-layouts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                file_name: excelData.filename,
+                fake: modoFake,
+                rapido: modoRapido,
+                tamanho: tamanho  // 👈 AQUI vai o A4 ou A5
+            })
+        });
+
+        const layoutsData = await layoutsResp.json();
+        console.log("✅ Layouts gerados com sucesso:", layoutsData);
+
+        alert("✅ Layouts gerados com sucesso!");
+
+    } catch (error) {
+        console.error("❌ Erro durante o processamento:", error);
+
+        if (error instanceof TypeError && error.message === "Failed to fetch") {
+            alert("⚠️ Erro: O servidor do CardápioAI não está respondendo. Verifique se ele está ligado.");
+        } else {
+            alert("Erro: " + error.message);
+        }
+	} finally {
+		document.getElementById("loading").style.display = "none"; // 🔴 ESCONDE loading
+	}
+});
+
+</script>
+
+</body>
+</html>
