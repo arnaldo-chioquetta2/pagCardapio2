@@ -1,88 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CardápioAI - Pré-visualização do Layout</title>
+    <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            width: 80%;
-            margin: auto;
-            overflow: hidden;
-            padding: 20px;
-        }
-        header {
-            background: #35424a;
-            color: #ffffff;
-            padding-top: 30px;
-            min-height: 70px;
-            border-bottom: #e8491d 3px solid;
-        }
-        header a {
-            color: #ffffff;
-            text-decoration: none;
-            text-transform: uppercase;
-            font-size: 16px;
-        }
-        header ul {
-            padding: 0;
-            list-style: none;
-        }
-        header li {
-            display: inline;
-            padding: 0 20px 0 20px;
-        }
-        header #branding {
-            float: left;
-        }
-        header #branding h1 {
-            margin: 0;
-        }
-        header nav {
-            float: right;
-            margin-top: 10px;
-        }
-        .highlight, header .current a {
-            color: #e8491d;
-            font-weight: bold;
-        }
-        .preview-container {
-            background: #fff;
-            padding: 20px;
-            margin-top: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .preview-image {
-            width: 100%;
-            max-width: 800px;
-            height: auto;
-            margin: 0 auto;
-            display: block;
-        }
         .button-container {
             text-align: center;
             margin-top: 20px;
         }
-        .button {
-            display: inline-block;
-            font-size: 18px;
-            color: #ffffff;
-            background: #e8491d;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
+        .button-container .button {
             margin: 0 10px;
-        }
+        }        
     </style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardápioAI - Pré-visualização do Layout</title>
+
 </head>
 <body>
     <header>
@@ -102,13 +34,45 @@
 
     <div class="container">
         <h2>Pré-visualização do Layout</h2>
-        <div class="preview-container">
-            <img src="mnu3.webp" alt="Pré-visualização do Cardápio" class="preview-image">
-        </div>
+        
+        <div id="preview-container" style="text-align: center; padding: 20px;"></div>
+
         <div class="button-container">
-            <a href="#" class="button">Voltar</a>
+            <button onclick="history.back()" class="button">Voltar</button>
             <a href="Geracao.html" class="button">Aprovar Layout</a>
-        </div>
+        </div>        
+
     </div>
+
+    <script src="config.js"></script>
+    <script>
+        const container = document.getElementById("preview-container");
+    
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            return match ? match[2] : null;
+        }
+    
+        const layout = getCookie("layoutSelecionado");
+    
+        console.log("🧠 Cookie lido: layoutSelecionado =", layout);
+    
+        if (!layout) {
+            console.warn("⚠️ Nenhum layout foi selecionado no cookie.");
+            container.innerHTML = "<p>Nenhum layout foi selecionado.</p>";
+        } else {
+            const img = document.createElement("img");
+            img.src = `${API_BASE_URL}/cardapio/${layout}`;
+            img.alt = "Layout Selecionado";
+    
+            console.log("📷 Imagem sendo carregada de:", img.src);
+    
+            img.onload = () => console.log("✅ Imagem carregada com sucesso.");
+            img.onerror = () => console.error("❌ Erro ao carregar a imagem:", img.src);
+    
+            container.appendChild(img);
+        }
+    </script>    
+    
 </body>
 </html>
