@@ -27,8 +27,24 @@
         <div class="pdf-container">
             <h3>Seu PDF foi gerado com sucesso!</h3>
             <p>Clique no botão abaixo para fazer o download do seu cardápio em formato PDF.</p>
-            <a href="#" class="button" download>Download PDF</a>
+            <a href="#" id="download-pdf" class="button" download="cardapio.pdf">Download PDF</a>
         </div>
     </div>
+
+    <div class="button-row">
+        <button id="gerar-novamente" class="button">Gerar Novamente</button>
+        <button class="button" onclick="history.back()">← Voltar</button>
+    </div>
+
 </body>
+
+<script src="config.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const downloadLink = document.getElementById("download-pdf");
+        downloadLink.href = `${API_BASE_URL}/menus/cardapio.pdf`;
+        downloadLink.setAttribute("download", "cardapio.pdf");
+    });
+</script>
+
 </html>

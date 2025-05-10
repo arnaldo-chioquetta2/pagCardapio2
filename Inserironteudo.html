@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CardápioAI - Inserir Conteúdo v1</title>
+    <title>CardápioAI - Inserir Conteúdo</title>
 </head>
 <body>
     <header>
         <div class="container">
             <div id="branding">
-                <h1><span class="highlight">Cardápio</span>AI</h1>
+                <h1><span class="highlight">Cardápio</span></h1>
             </div>
             <nav>
                 <ul>
@@ -23,8 +23,10 @@
     </header>
 
     <div class="container">
-        <h2>Inserir Conteúdo do Cardápio</h2>
-        <div class="form-container">
+        <h2 style="text-align: center;">Inserir Conteúdo do Cardápio</h2>
+    
+        <div class="form-container">            
+            <p id="status-servidor" style="font-weight: bold; color: gray;">🔄 Verificando status do servidor...</p>
             <form id="menu-form">
                 <div class="form-group">
                     <label for="excel-upload">Upload da lista de preços (Excel):</label>
@@ -38,138 +40,166 @@
                     <label for="logo-upload">Upload do logo:</label>
                     <input type="file" id="logo-upload" accept="image/*">
                 </div>
-                <div class="form-group">
-                    <label for="menu-size">Tamanho do cardápio:</label>
-                    <select id="menu-size">
-                        <option value="a4">A4</option>
-                        <option value="a5">A5</option>
-                        <option value="custom">Personalizado</option>
-                    </select>
-                </div>
 
                 <label><input type="checkbox" id="modo-fake"> Fake</label>
                 <label><input type="checkbox" id="modo-rapido"> Modo Rápido</label>                
 
+                 <div class="form-group">
+                    <label for="qtd-cardapios">Quantidade de cardápios:</label>
+                    <select id="qtd-cardapios">
+                        <option value="1">1 cardápio</option>
+                        <option value="3">3 cardápios</option>
+                    </select>
+                </div> 
+
                 <button type="submit" id="gerar-layouts" class="button">Gerar Layouts</button>
             </form>
-        </div>
-    </div>
+            <div id="versao">Site versão 1.3</div> 
+        </div>        
+    </div>    
 
 <div id="loading" style="display:none; text-align: center; margin-top: 20px;">
     <img src="tempo.gif" alt="Carregando..." width="40"><br>
-    <strong>Processando... Por favor, aguarde.</strong>
+    <strong>Processando... Por favor, aguarde.</strong>    
 </div>
 
 <script src="config.js"></script>
+
 <script>
 
-window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('modo-fake').checked = getCookie('modo_fake') === 'true';
-    document.getElementById('modo-rapido').checked = getCookie('modo_rapido') === 'true';
-});
+    // var API_BASE_URL = "https://cardapiointeligente-api-afc4ctbbdtdbbjf7.brazilsouth-01.azurewebsites.net";
 
-function setCookie(name, value, days = 365) {
-    const expires = new Date(Date.now() + days*24*60*60*1000).toUTCString();
-    document.cookie = `${name}=${value}; expires=${expires}; path=/`;
-}
+    window.addEventListener('DOMContentLoaded', async () => {
+        const statusEl = document.getElementById("status-servidor");        
+        try {
+            const resp = await fetch(`${API_BASE_URL}/verversao`);
+            const versao = (await resp.text()).trim();
+            if (!versao) throw new Error("Resposta vazia");
+            statusEl.innerHTML = `🟢 Servidor ONLINE. <span style="font-size: 0.9em; color: #444;">${versao}</span>`;
+            statusEl.style.color = "green";   
+            document.getElementById('modo-fake').checked = getCookie('modo_fake') === 'true';
+            document.getElementById('modo-rapido').checked = getCookie('modo_rapido') === 'true';
+            const qtdCookie = getCookie("qtd_cardapios");
+            if (qtdCookie === "1" || qtdCookie === "3") {
+                document.getElementById("qtd-cardapios").value = qtdCookie;
+            }            
+        } catch (err) {
+            statusEl.textContent = "🔴 Servidor OFFLINE.";
+            statusEl.style.color = "red";
+            console.error("Falha ao buscar versão do servidor:", err);
+            document.getElementById("menu-form").style.display = "none";
+        }
+    });
 
-function getCookie(name) {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? match[2] : null;
-}
-
-document.getElementById('menu-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    console.log("🟡 Formulário submetido");
-
-    const excelFile = document.getElementById('excel-upload').files[0];
-    const imagesFiles = document.getElementById('images-upload').files;
-    const logoFile = document.getElementById('logo-upload').files[0];
-    const menuSize = document.getElementById('menu-size').value;
-
-    if (!excelFile) {
-        alert("O arquivo Excel do cardápio é obrigatório.");
-        console.log("🔴 Nenhum arquivo Excel enviado");
-        return;
+    function setCookie(name, value, days = 365) {
+        const expires = new Date(Date.now() + days*24*60*60*1000).toUTCString();
+        document.cookie = `${name}=${value}; expires=${expires}; path=/`;
     }
-	
-	document.getElementById("loading").style.display = "block";	
 
-    try {
-        // Envia o Excel
-        console.log("🟡 Enviando arquivo Excel...");
-        const formDataExcel = new FormData();
-        formDataExcel.append("file", excelFile);
-        const excelResp = await fetch(`${API_BASE_URL}/upload-cardapio`, { method: "POST", body: formDataExcel });
-        const excelData = await excelResp.json();
-        console.log("✅ Excel enviado:", excelData);
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : null;
+    }
 
-        if (!excelData.filename) throw new Error("Erro ao enviar Excel");
+    document.getElementById('menu-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log("Formulário submetido");
 
-        // Envia imagens, se existirem
-        if (imagesFiles.length > 0) {
-            console.log("🟡 Enviando imagens...");
-            const formDataImages = new FormData();
-            for (let i = 0; i < imagesFiles.length; i++) {
-                console.log(`📸 Adicionando imagem: ${imagesFiles[i].name}`);
-                formDataImages.append("files", imagesFiles[i]);
+        const excelFile = document.getElementById('excel-upload').files[0];
+        const imagesFiles = document.getElementById('images-upload').files;
+        const logoFile = document.getElementById('logo-upload').files[0];
+
+        if (!excelFile) {
+            alert("O arquivo Excel do cardápio é obrigatório.");
+            console.log("Nenhum arquivo Excel enviado");
+            return;
+        }
+        
+        document.getElementById("loading").style.display = "block";	
+
+         try {
+            console.log("Enviando arquivo Excel...");
+            const formDataExcel = new FormData();
+            formDataExcel.append("file", excelFile);
+            const excelResp = await fetch(`${API_BASE_URL}/upload-cardapio`, { method: "POST", body: formDataExcel });
+            const excelData = await excelResp.json();
+            console.log("Excel enviado:", excelData);
+
+            if (!excelData.filename) throw new Error("Erro ao enviar Excel");
+
+            if (imagesFiles.length > 0) {
+                console.log("Enviando imagens...");
+                const formDataImages = new FormData();
+                for (let i = 0; i < imagesFiles.length; i++) {
+                    console.log(`📸 Adicionando imagem: ${imagesFiles[i].name}`);
+                    formDataImages.append("files", imagesFiles[i]);
+                }
+                await fetch(`${API_BASE_URL}/upload-images`, { method: "POST", body: formDataImages });
+                const imagesData = await imagesResp.json();
+                console.log("Imagens enviadas:", imagesData);
+            } else {
+                console.log("Nenhuma imagem enviada");
             }
-            await fetch(`${API_BASE_URL}/upload-images`, { method: "POST", body: formDataImages });
-            const imagesData = await imagesResp.json();
-            console.log("✅ Imagens enviadas:", imagesData);
+
+            if (logoFile) {
+                console.log("Enviando logo...");
+                const formDataLogo = new FormData();
+                formDataLogo.append("file", logoFile);
+                await fetch(`${API_BASE_URL}/upload-logo`, { method: "POST", body: formDataLogo });
+                const logoData = await logoResp.json();
+                console.log("Logo enviado:", logoData);
+            } else {
+                console.log("ℹNenhum logo enviado");
+            }
+
+            const modoFake = document.getElementById('modo-fake').checked;
+            const modoRapido = document.getElementById('modo-rapido').checked;
+            const qtdCardapios = document.getElementById("qtd-cardapios").value;
+
+            setCookie('modo_fake', modoFake);
+            setCookie('modo_rapido', modoRapido);            
+            setCookie("qtd_cardapios", qtdCardapios);
+
+            const layoutsResp = await fetch(`${API_BASE_URL}/generate-layouts`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    file_name: excelData.filename,
+                    fake: modoFake,
+                    rapido: modoRapido,
+                    tamanho: "A4",
+                    qtd: qtdCardapios
+                })
+            });            
+
+            const layoutsData = await layoutsResp.json();
+            console.log("Layouts gerados com sucesso:", layoutsData);
+
+            window.location.href = "visualizar.html";
+
+         } catch (error) {
+             console.error("Erro durante o processamento:", error);
+
+             if (error instanceof TypeError && error.message === "Failed to fetch") {
+                 alert("Erro: O servidor do CardápioAI não está respondendo. Verifique se ele está ligado.");
+             } else {
+                 alert("Erro: " + error.message);
+             }
+         } finally {
+             document.getElementById("loading").style.display = "none"; 
+         }
+    });
+
+    document.getElementById('modo-fake').addEventListener('change', function () {
+        const modoRapido = document.getElementById('modo-rapido');
+        if (this.checked) {
+            modoRapido.checked = false;
+            modoRapido.disabled = true;
         } else {
-            console.log("ℹ️ Nenhuma imagem enviada");
+            modoRapido.disabled = false;
         }
-
-        // Envia logo, se existir
-        if (logoFile) {
-            console.log("🟡 Enviando logo...");
-            const formDataLogo = new FormData();
-            formDataLogo.append("file", logoFile);
-            await fetch(`${API_BASE_URL}/upload-logo`, { method: "POST", body: formDataLogo });
-            const logoData = await logoResp.json();
-            console.log("✅ Logo enviado:", logoData);
-        } else {
-            console.log("ℹ️ Nenhum logo enviado");
-        }
-
-        const modoFake = document.getElementById('modo-fake').checked;
-        const modoRapido = document.getElementById('modo-rapido').checked;
-
-        setCookie('modo_fake', modoFake);
-        setCookie('modo_rapido', modoRapido);
-        const tamanho = document.getElementById('menu-size').value;
-
-        const layoutsResp = await fetch("http://localhost:8001/generate-layouts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                file_name: excelData.filename,
-                fake: modoFake,
-                rapido: modoRapido,
-                tamanho: tamanho  // 👈 AQUI vai o A4 ou A5
-            })
-        });
-
-        const layoutsData = await layoutsResp.json();
-        console.log("✅ Layouts gerados com sucesso:", layoutsData);
-
-        window.location.href = "visualizar.html";
-
-    } catch (error) {
-        console.error("❌ Erro durante o processamento:", error);
-
-        if (error instanceof TypeError && error.message === "Failed to fetch") {
-            alert("⚠️ Erro: O servidor do CardápioAI não está respondendo. Verifique se ele está ligado.");
-        } else {
-            alert("Erro: " + error.message);
-        }
-	} finally {
-		document.getElementById("loading").style.display = "none"; // 🔴 ESCONDE loading
-	}
-});
+    });
 
 </script>
-
 </body>
 </html>
